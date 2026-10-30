@@ -1,0 +1,60 @@
+{
+  "status": "trained",
+  "model_version": "MobileNetV2-Custom-v1.0",
+  "class_names": [
+    "leakage",
+    "no_leakage"
+  ],
+  "best_val_accuracy": 1.0,
+  "precision": 0.9444,
+  "recall": 0.9375,
+  "f1_score": 0.9373,
+  "confusion_matrix": [
+    [
+      7,
+      1
+    ],
+    [
+      0,
+      8
+    ]
+  ],
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.8196,
+      "train_acc": 0.52,
+      "val_loss": 0.6844,
+      "val_acc": 0.5
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.6745,
+      "train_acc": 0.64,
+      "val_loss": 0.6462,
+      "val_acc": 0.6875
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.6806,
+      "train_acc": 0.58,
+      "val_loss": 0.6276,
+      "val_acc": 0.75
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.6803,
+      "train_acc": 0.62,
+      "val_loss": 0.598,
+      "val_acc": 1.0
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.6352,
+      "train_acc": 0.76,
+      "val_loss": 0.5715,
+      "val_acc": 1.0
+    }
+  ],
+  "last_trained_at": "2026-10-05 18:41:34"
+}

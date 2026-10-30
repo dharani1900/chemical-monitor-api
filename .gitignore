@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+venv/
+__pycache__/
+*.py[cod]
+*.db
+storage/*
+!storage/models/
+storage/models/*
+!storage/models/best_model.pth
+!storage/models/model_info.json
