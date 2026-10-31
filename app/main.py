@@ -85,6 +85,6 @@ def root():
     return {
         "system": "Smart Chemical Storage Cabinet Monitoring System",
         "status": "online",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "documentation": "/docs"
     }
