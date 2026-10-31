@@ -30,7 +30,7 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 LEAKAGE_DANGER_THRESHOLD = 0.525
 
 @router.post("/analyze", response_model=DetectionOut)
-async def analyze_image(
+def analyze_image(
     file: UploadFile = File(...),
     notes: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),

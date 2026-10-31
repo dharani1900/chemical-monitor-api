@@ -1,6 +1,25 @@
 import os
 from dotenv import load_dotenv
 
+# Configure watchfiles to ignore storage and db writes if running with a reloader
+try:
+    import re
+    import watchfiles.filters
+    _orig_filter_init = watchfiles.filters.DefaultFilter.__init__
+    def _safe_filter_init(self, *args, **kwargs):
+        _orig_filter_init(self, *args, **kwargs)
+        self._ignore_dirs.update({"storage", "uploads", "visualizations", "models"})
+        self._ignore_entity_regexes = self._ignore_entity_regexes + (
+            re.compile(r".*\.db.*"),
+            re.compile(r".*\.sqlite.*"),
+            re.compile(r".*\.png$"),
+            re.compile(r".*\.jpg$"),
+            re.compile(r".*\.jpeg$"),
+        )
+    watchfiles.filters.DefaultFilter.__init__ = _safe_filter_init
+except Exception:
+    pass
+
 # Load environment variables from backend/.env if present
 _env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
 if os.path.exists(_env_path):
@@ -85,6 +104,6 @@ def root():
     return {
         "system": "Smart Chemical Storage Cabinet Monitoring System",
         "status": "online",
-        "version": "1.0.1",
+        "version": "1.0.2",
         "documentation": "/docs"
     }
