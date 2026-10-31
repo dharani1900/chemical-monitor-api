@@ -27,7 +27,7 @@ os.makedirs(VISUALIZATIONS_DIR, exist_ok=True)
 router = APIRouter(prefix="/api/detections", tags=["Detections"])
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png"}
-LEAKAGE_DANGER_THRESHOLD = 0.52
+LEAKAGE_DANGER_THRESHOLD = 0.525
 
 @router.post("/analyze", response_model=DetectionOut)
 async def analyze_image(
@@ -104,7 +104,7 @@ async def analyze_image(
     model_version = res["model_version"]
     gradcam_heatmap = res.get("gradcam_heatmap")
 
-    # 52% Confidence Threshold strictly evaluated on the leakage class
+    # 52.5% Confidence Threshold strictly evaluated on the leakage class
     is_danger = (prediction == "leakage" and confidence >= LEAKAGE_DANGER_THRESHOLD)
     alarm_recommended = is_danger
 

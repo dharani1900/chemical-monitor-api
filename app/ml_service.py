@@ -57,6 +57,8 @@ class MLService:
                 model.load_state_dict(torch.load(MODEL_PATH, map_location=self.device))
                 model.to(self.device)
                 model.eval()
+                for p in model.parameters():
+                    p.requires_grad = False
                 self.model = model
                 self.mode = "trained_model"
                 print("Loaded trained PyTorch MobileNetV2 model successfully!")
@@ -79,62 +81,60 @@ class MLService:
 
         # If trained model is available, perform real PyTorch inference & Grad-CAM
         if self.model is not None and self.mode == "trained_model":
-            img_pil = Image.open(image_path).convert("RGB")
-            input_tensor = self.transform(img_pil).unsqueeze(0).to(self.device)
+            try:
+                img_pil = Image.open(image_path).convert("RGB")
+                input_tensor = self.transform(img_pil).unsqueeze(0).to(self.device)
 
-            # Grad-CAM hooks
-            features_blobs = []
-            gradients_blobs = []
+                features_blobs = []
 
-            def forward_hook(module, input, output):
-                features_blobs.append(output)
+                def forward_hook(module, inp, out):
+                    features_blobs.append(out.detach().cpu())
 
-            def backward_hook(module, grad_in, grad_out):
-                gradients_blobs.append(grad_out[0])
+                target_layer = self.model.features[-1]
+                h = target_layer.register_forward_hook(forward_hook)
 
-            # Register hook on last feature layer of MobileNetV2
-            target_layer = self.model.features[-1]
-            h1 = target_layer.register_forward_hook(forward_hook)
-            h2 = target_layer.register_full_backward_hook(backward_hook)
+                with torch.no_grad():
+                    outputs = self.model(input_tensor)
+                    probs = torch.softmax(outputs, dim=1).detach().cpu().numpy()[0]
+                    pred_idx = int(np.argmax(probs))
+                    confidence = float(probs[pred_idx])
+                    pred_label = self.class_names[pred_idx]
 
-            outputs = self.model(input_tensor)
-            probs = torch.softmax(outputs, dim=1).detach().cpu().numpy()[0]
-            pred_idx = np.argmax(probs)
-            confidence = float(probs[pred_idx])
-            pred_label = self.class_names[pred_idx]
+                h.remove()
 
-            # Compute Grad-CAM
-            self.model.zero_grad()
-            outputs[0, pred_idx].backward()
-
-            h1.remove()
-            h2.remove()
-
-            if len(features_blobs) > 0 and len(gradients_blobs) > 0:
-                features = features_blobs[0].detach().cpu().numpy()[0]
-                gradients = gradients_blobs[0].detach().cpu().numpy()[0]
-                weights = np.mean(gradients, axis=(1, 2))
-                cam = np.zeros(features.shape[1:], dtype=np.float32)
-                for i, w in enumerate(weights):
-                    cam += w * features[i, :, :]
-                cam = np.maximum(cam, 0)
-                cam = cv2.resize(cam, (224, 224))
-                cam_norm = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
-            else:
+                # Compute Grad-CAM heatmap using forward activations and linear classifier weights
                 cam_norm = None
+                if len(features_blobs) > 0:
+                    features = features_blobs[0][0].numpy()
+                    try:
+                        linear_layer = self.model.classifier[1]
+                        if isinstance(linear_layer, nn.Sequential):
+                            linear_layer = linear_layer[1]
+                        weights = linear_layer.weight[pred_idx].detach().cpu().numpy()
+                        cam = np.zeros(features.shape[1:], dtype=np.float32)
+                        for i, w in enumerate(weights):
+                            cam += w * features[i, :, :]
+                        cam = np.maximum(cam, 0)
+                        cam = cv2.resize(cam, (224, 224))
+                        cam_norm = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
+                    except Exception as cam_err:
+                        print(f"Warning computing CAM: {cam_err}")
+                        cam_norm = None
 
-            severity = "High" if confidence > 0.85 else "Medium" if confidence > 0.65 else "Low"
-            if pred_label == "no_leakage":
-                severity = "None"
+                severity = "High" if confidence > 0.85 else "Medium" if confidence > 0.65 else "Low"
+                if pred_label == "no_leakage":
+                    severity = "None"
 
-            return {
-                "prediction": pred_label,
-                "confidence": round(confidence, 4),
-                "severity": severity,
-                "mode": self.mode,
-                "model_version": self.model_version,
-                "gradcam_heatmap": cam_norm
-            }
+                return {
+                    "prediction": pred_label,
+                    "confidence": round(confidence, 4),
+                    "severity": severity,
+                    "mode": self.mode,
+                    "model_version": self.model_version,
+                    "gradcam_heatmap": cam_norm
+                }
+            except Exception as e:
+                print(f"Prediction error in trained model: {e}. Falling back to demo inference.")
 
         # Demo fallback logic: inspect image or file traits to deliver consistent, deterministic demo predictions
         img_bgr = cv2.imread(image_path)

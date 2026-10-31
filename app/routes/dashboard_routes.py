@@ -11,7 +11,7 @@ from app.ml_service import ml_service
 
 router = APIRouter(prefix="/api/dashboard", tags=["Dashboard"])
 
-LEAKAGE_DANGER_THRESHOLD = 0.52
+LEAKAGE_DANGER_THRESHOLD = 0.525
 
 @router.get("/stats", response_model=DashboardStats)
 def get_dashboard_stats(
