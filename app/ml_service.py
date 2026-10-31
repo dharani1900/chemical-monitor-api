@@ -28,7 +28,12 @@ INFO_PATH = os.getenv("MODEL_INFO_PATH") or resolve_file_path("model_info.json")
 
 class MLService:
     def __init__(self):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        torch.set_num_threads(1)
+        try:
+            torch.set_num_interop_threads(1)
+        except Exception:
+            pass
+        self.device = torch.device("cpu")
         self.model = None
         self.class_names = ["leakage", "no_leakage"]
         self.mode = "demo_mode"
@@ -93,7 +98,7 @@ class MLService:
                 target_layer = self.model.features[-1]
                 h = target_layer.register_forward_hook(forward_hook)
 
-                with torch.no_grad():
+                with torch.inference_mode():
                     outputs = self.model(input_tensor)
                     probs = torch.softmax(outputs, dim=1).detach().cpu().numpy()[0]
                     pred_idx = int(np.argmax(probs))
@@ -120,6 +125,11 @@ class MLService:
                     except Exception as cam_err:
                         print(f"Warning computing CAM: {cam_err}")
                         cam_norm = None
+
+                # Clean up PyTorch memory immediately
+                del input_tensor, outputs, probs, features_blobs
+                import gc
+                gc.collect()
 
                 severity = "High" if confidence > 0.85 else "Medium" if confidence > 0.65 else "Low"
                 if pred_label == "no_leakage":

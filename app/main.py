@@ -1,4 +1,12 @@
 import os
+# Prevent multi-threaded memory expansion on multi-core Linux hosts (e.g. Render 512MB RAM limit)
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["TORCH_NUM_THREADS"] = "1"
+
 from dotenv import load_dotenv
 
 # Configure watchfiles to ignore storage and db writes if running with a reloader
@@ -104,6 +112,6 @@ def root():
     return {
         "system": "Smart Chemical Storage Cabinet Monitoring System",
         "status": "online",
-        "version": "1.0.2",
+        "version": "1.0.3",
         "documentation": "/docs"
     }

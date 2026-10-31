@@ -78,10 +78,14 @@ def analyze_image(
             detail="File size exceeds maximum limit of 10MB."
         )
 
-    # Verify image integrity and decodability
+    # Verify image integrity and normalize high-res photos to prevent container OOM
     try:
         with Image.open(upload_path) as img:
             img.verify()
+        with Image.open(upload_path) as img:
+            if max(img.size) > 1024:
+                img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+                img.save(upload_path)
     except Exception:
         if os.path.exists(upload_path):
             os.remove(upload_path)
@@ -154,6 +158,9 @@ def analyze_image(
     db.add(record)
     db.commit()
     db.refresh(record)
+
+    import gc
+    gc.collect()
 
     return record
 

@@ -38,6 +38,8 @@ def generate_gas_cloud_visualization(
             cv2.LINE_AA
         )
         cv2.imwrite(output_path, combined)
+        import gc
+        gc.collect()
         return output_path
 
     # If leakage predicted: generate simulated gas cloud plume
@@ -105,4 +107,6 @@ def generate_gas_cloud_visualization(
 
     final_img = np.vstack([blended, banner])
     cv2.imwrite(output_path, final_img)
+    import gc
+    gc.collect()
     return output_path
